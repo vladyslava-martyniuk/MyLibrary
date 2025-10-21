@@ -1,5 +1,5 @@
-# from .base.py import Base, create_db, drop_db
-# from .base.py import SessionLocal
+from base import Base, SessionLocal
+from models.book import Book
 
 
 def create_book(title:str, author:str, publication_year:int, genre:str) -> Book:
