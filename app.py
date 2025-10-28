@@ -18,7 +18,7 @@ def delete_book_endpoint(book_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Книга з ID {book_id} успішно видалена"}
 MAX_FILE_SIZE = 5 * 1024**2  
-ALLOWED_CONTENT_TYPES = ["application/pdf", "application/msword", "application/docx"]
+ALLOWED_CONTENT_TYPES = ["application/pdf"]
 
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
