@@ -48,6 +48,26 @@ async def create_upload_file(file: UploadFile = File(...)):
         await file.close()
 
     return {"filename": file.filename, "content_type": file.content_type, "size_in_bytes": file.size}
+
+@app.put("/books/{book_id}")
+def edit_book(title_to_find: str, new_book_data: Book):
+    normalized_title = title_to_find.strip().lower()
+
+    try:
+        book_index = next(
+            i for i, book in enumerate(books)
+            if book.title.strip().lower() == normalized_title
+        )
+    except StopIteration:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Помилка: Книгу з назвою '{title_to_find}' не знайдено."
+        )
+
+    books[book_index] = new_book_data
+
+    return {"message": f"Книгу '{title_to_find}' успішно змінено.", "updated_book": new_book_data.model_dump()}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app)
