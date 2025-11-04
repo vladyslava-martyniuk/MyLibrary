@@ -8,7 +8,7 @@ import shutil
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
+# Маршрути: видалення книги
 @app.delete("/books/{book_id}")
 def delete_book_endpoint(book_id: int, db: Session = Depends(get_db)):
     book = db.query(Book).filter(Book.id == book_id).first()
@@ -17,9 +17,16 @@ def delete_book_endpoint(book_id: int, db: Session = Depends(get_db)):
     db.delete(book)
     db.commit()
     return {"message": f"Книга з ID {book_id} успішно видалена"}
+
+#Маршрут для створення книги
+
+
+
+# Маршут для редагування книги
+
+# Маршрут для завантаження файлу
 MAX_FILE_SIZE = 5 * 1024**2  
 ALLOWED_CONTENT_TYPES = ["application/pdf"]
-
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
 
