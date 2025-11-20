@@ -9,3 +9,4 @@ class Book(Base):
     author = Column(String, nullable=False)
     publication_year = Column(Integer)
     genre = Column(String)
+    description = Column(String)

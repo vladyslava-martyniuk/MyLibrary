@@ -1,13 +1,16 @@
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, status
 from sqlalchemy.orm import Session
 from base import get_db, Base, engine
-from models.book import Book  # явно імпортуємо з файлу
+from models.book import Book  
+from pydantic import BaseModel
 import shutil
 
 # Створення таблиць
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+
+app = FastAPI()           
+
 # Маршрути: видалення книги
 @app.delete("/books/{book_id}")
 def delete_book_endpoint(book_id: int, db: Session = Depends(get_db)):
@@ -20,11 +23,12 @@ def delete_book_endpoint(book_id: int, db: Session = Depends(get_db)):
 
 #Маршрут для створення книги
 
-
+class Book_pydantic(BaseModel):
+    pass
 
 # Маршут для редагування книги
 @app.put("/books/{book_id}")
-def edit_book(title_to_find: str, new_book_data: Book):
+def edit_book(title_to_find: str, new_book_data: Book_pydantic ):
     normalized_title = title_to_find.strip().lower()
     try:
         book_index = next(
