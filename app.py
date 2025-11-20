@@ -47,11 +47,10 @@ def edit_book(title_to_find: str, new_book_data: Book_pydantic ):
 
 
 # Маршрут для завантаження файлу
-MAX_FILE_SIZE = 5 * 1024**2  
+MAX_FILE_SIZE = 5 * 1024 ** 2
 ALLOWED_CONTENT_TYPES = ["application/pdf"]
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
-
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -65,7 +64,7 @@ async def create_upload_file(file: UploadFile = File(...)):
         )
 
     try:
-      
+
         with open(f"uploads_{file.filename}", "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
     except Exception as e:
@@ -79,7 +78,7 @@ async def create_upload_file(file: UploadFile = File(...)):
     return {"filename": file.filename, "content_type": file.content_type, "size_in_bytes": file.size}
 
 
-
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app)
