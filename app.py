@@ -9,8 +9,6 @@ import shutil
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
-
 # Маршрути: видалення книги
 @app.delete("/books/{book_id}")
 def delete_book_endpoint(book_id: int, db: Session = Depends(get_db)):
@@ -21,10 +19,7 @@ def delete_book_endpoint(book_id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"message": f"Книга з ID {book_id} успішно видалена"}
 
-
-# Маршрут для створення книги
-
-
+#Маршрут для створення книги
 @app.post("/books", response_model=BookResponse, status_code=status.HTTP_201_CREATED)
 def create_book(book_in: BookCreateUpdate, db: Session = Depends(get_db)):
     db_book = Book(
@@ -62,8 +57,6 @@ def edit_book(title_to_find: str, new_book_data: Book):
 # Маршрут для завантаження файлу
 MAX_FILE_SIZE = 5 * 1024 ** 2
 ALLOWED_CONTENT_TYPES = ["application/pdf"]
-
-
 @app.post("/uploadfile/")
 async def create_upload_file(file: UploadFile = File(...)):
     if file.content_type not in ALLOWED_CONTENT_TYPES:
