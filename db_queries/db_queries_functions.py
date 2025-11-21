@@ -1,68 +1,121 @@
-from base import Base, SessionLocal
-from models.book import Book
+from sqlalchemy.orm import Session
+from base import SessionLocal
+from models.models import Book, Author
+from pydantic_models import AuthorCreate, BookCreateUpdate
 
 
-def create_book(title:str, author:str, publication_year:int, genre:str) -> Book:
+# ==========================
+#         BOOK CRUD
+# ==========================
+
+def create_book(data: BookCreateUpdate) -> Book:
     """
-    Додає нову книгу в базу даних.
+    Створення нової книги.
     """
     with SessionLocal() as session:
         new_book = Book(
-            title=title,
-            author=author,
-            publication_year=publication_year,
-            genre=genre
+            title=data.title,
+            publication_year=data.publication_year,
+            genre=data.genre,
+            description=data.description,
+            author_id=data.author_id
         )
         session.add(new_book)
         session.commit()
         session.refresh(new_book)
-    return new_book
+        return new_book
 
 
-def get_book(id: int) -> Book | None:
+def get_book(book_id: int) -> Book | None:
     """
-    Знаходить і повертає одну книгу за її id.
-    """
-    with SessionLocal() as session:
-        book = session.query(Book).filter(Book.id == id).first()
-        return book
-
-
-def update_book(id: int, title: str = None, author: str = None, publication_year: int = None, genre: str = None) -> Book | None:
-    """
-    Оновлює дані існуючої книги за її id.
+    Повертає книгу за ID.
     """
     with SessionLocal() as session:
-        book = session.query(Book).filter(Book.id == id).first()
+        return session.query(Book).filter(Book.id == book_id).first()
+
+
+def update_book(book_id: int, data: BookCreateUpdate) -> Book | None:
+    """
+    Оновлює книгу за ID.
+    """
+    with SessionLocal() as session:
+        book = session.query(Book).filter(Book.id == book_id).first()
 
         if not book:
             return None
 
-        if title is not None:
-            book.title = title
-        if author is not None:
-            book.author = author
-        if publication_year is not None:
-            book.publication_year = publication_year
-        if genre is not None:
-            book.genre = genre
+        for key, value in data.dict().items():
+            setattr(book, key, value)
 
         session.commit()
         session.refresh(book)
         return book
 
 
-def delete_book(id: int) -> bool:
+def delete_book(book_id: int) -> bool:
     """
-    Видаляє книгу за її id. Повертає True у разі успіху, False, якщо книга не знайдена.
+    Видаляє книгу за ID.
     """
     with SessionLocal() as session:
-        book = session.query(Book).filter(Book.id == id).first()
+        book = session.query(Book).filter(Book.id == book_id).first()
 
         if not book:
             return False
 
-        else:
-            session.delete(book)
-            session.commit()
-            return True
+        session.delete(book)
+        session.commit()
+        return True
+
+
+# ==========================
+#        AUTHOR CRUD
+# ==========================
+
+def create_author(data: AuthorCreate) -> Author:
+    """
+    Створює нового автора.
+    """
+    with SessionLocal() as session:
+        author = Author(**data.dict())
+        session.add(author)
+        session.commit()
+        session.refresh(author)
+        return author
+
+
+def get_author(author_id: int) -> Author | None:
+    with SessionLocal() as session:
+        return session.query(Author).filter(Author.id == author_id).first()
+
+
+def update_author(author_id: int, data: AuthorCreate) -> Author | None:
+    """
+    Оновлює автора за ID.
+    """
+    with SessionLocal() as session:
+        author = session.query(Author).filter(Author.id == author_id).first()
+
+        if not author:
+            return None
+
+        for key, value in data.dict().items():
+            setattr(author, key, value)
+
+        session.commit()
+        session.refresh(author)
+        return author
+
+
+def delete_author(author_id: int) -> bool:
+    """
+    Видаляє автора за ID.
+    """
+    with SessionLocal() as session:
+        author = session.query(Author).filter(Author.id == author_id).first()
+
+        if not author:
+            return False
+
+        session.delete(author)
+        session.commit()
+        return True
