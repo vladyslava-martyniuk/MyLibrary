@@ -1,6 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, status, APIRouter
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from base import get_db, Base, engine
+
+from security import ACCESS_TOKEN_EXPIRE_MINUTES, Token, get_current_user, create_access_token
+from passlib.context import CryptContext
+from security import get_current_user
+from datetime import timedelta
+
+from dotenv import load_dotenv
 
 from models.models import Book, Author, User
 from pydantic_models import (
@@ -15,12 +23,43 @@ from pydantic_models import (
 import shutil
 import os
 
+
+# =========================
+#  КОНФІГУРАЦІЯ .env
+# =========================
+# load_dotenv()
+
+# SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+# ALGORITHM = [os.getenv("JWT_ALGORITHM", "HS512")]
+# ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+#
+# if not SECRET_KEY:
+#     raise ValueError("JWT_SECRET_KEY не встановлений")
+
+from security import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+
+# =========================
+#  ХЕШУВАННЯ
+# =========================
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def get_password_hash(password: str):
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str):
+    return pwd_context.verify(plain_password, hashed_password)
+
+
 # =========================
 #  Створення таблиць
 # =========================
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
+
 
 # =========================
 #  CRUD ФУНКЦІЇ ДЛЯ АВТОРІВ
@@ -66,6 +105,10 @@ def create_user(db: Session, user: UserCreate):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+
+def get_user_by_username(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
 
 
 def get_user(db: Session, user_id: int):
@@ -200,6 +243,23 @@ def delete_author_endpoint(author_id: int, db: Session = Depends(get_db)):
 # =========================
 user_router = APIRouter(prefix="/users", tags=["Users"])
 
+
+@user_router.post("/", response_model=UserResponse, status_code=201)
+def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
+    # В схеме UserCreate должно быть поле 'password'
+    existing_user = get_user_by_username(db, user.username)
+    if existing_user:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Пользователь с таким именем уже существует")
+
+    return create_user(db, user)
+
+
+@user_router.get("/me/", response_model=UserResponse)  # НОВЫЙ ЭНДПОИНТ
+def read_users_me(current_user: User = Depends(get_current_user)):
+    """Возвращает данные текущего аутентифицированного пользователя."""
+    return current_user
+
+
 @user_router.post("/", response_model=UserResponse, status_code=201)
 def create_user_endpoint(user: UserCreate, db: Session = Depends(get_db)):
     return create_user(db, user)
@@ -227,6 +287,38 @@ def delete_user_endpoint(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(404, "User not found")
     return {"message": "User deleted successfully"}
 
+
+# =========================
+#  ROUTER ДЛЯ АУТЕНТИФІКАЦІЇ
+# =========================
+auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@auth_router.post("/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = get_user_by_username(db, form_data.username)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неправильное имя пользователя или пароль",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Неправильное имя пользователя или пароль",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.username},  # 'sub' - это Subject (тема), обычно ID или username
+        expires_delta=access_token_expires
+    )
+
+    return {"access_token": access_token, "token_type": "bearer"}
 
 # =========================
 #  FILE UPLOAD
@@ -272,6 +364,7 @@ def get_uploaded_file(filename: str):
 # =========================
 #  INCLUDE ROUTERS
 # =========================
+app.include_router(auth_router)
 app.include_router(author_router)
 app.include_router(user_router)
 

@@ -26,7 +26,7 @@ class BookCreateUpdate(BaseModel):
     publication_year: int
     genre: str
     description: str
-    author_id: int    # Важливо!
+    author_id: int  # Важливо!
 
 
 class BookResponse(BaseModel):
@@ -36,6 +36,22 @@ class BookResponse(BaseModel):
     genre: str
     description: str
     author: AuthorResponse
+
+    class Config:
+        orm_mode = True
+
+
+# ==========================
+#    КОРИСТУВАЧІ (Pydantic)
+# ==========================
+class UserCreate(BaseModel):
+    username: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    username: str
+    password: str
 
     class Config:
         orm_mode = True
