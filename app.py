@@ -23,7 +23,7 @@ from pydantic_models import (
 import shutil
 import os
 
-
+from middleware.headers import SecurityHeadersMiddleware
 # =========================
 #  КОНФІГУРАЦІЯ .env
 # =========================
@@ -59,7 +59,7 @@ def verify_password(plain_password: str, hashed_password: str):
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
-
+app.add_middleware(SecurityHeadersMiddleware)
 
 # =========================
 #  CRUD ФУНКЦІЇ ДЛЯ АВТОРІВ
