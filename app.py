@@ -2,10 +2,12 @@ from fastapi import FastAPI, Depends, HTTPException, File, UploadFile, status, A
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from base import get_db, Base, engine
+from redis import Redis, from_url
+from typing import Optional
 
-from security import ACCESS_TOKEN_EXPIRE_MINUTES, Token, get_current_user, create_access_token
+from security_token import ACCESS_TOKEN_EXPIRE_MINUTES, Token, get_current_user, create_access_token
 from passlib.context import CryptContext
-from security import get_current_user
+from security_token import get_current_user
 from datetime import timedelta
 
 from dotenv import load_dotenv
@@ -36,7 +38,7 @@ from middleware.headers import SecurityHeadersMiddleware
 # if not SECRET_KEY:
 #     raise ValueError("JWT_SECRET_KEY не встановлений")
 
-from security import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
+from security_token import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 
 # =========================
 #  ХЕШУВАННЯ
@@ -60,7 +62,17 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 app.add_middleware(SecurityHeadersMiddleware)
+redis_client = Optional[Redis] = None
 
+@app.on_event("startup")
+async def startup():
+    global redis_client
+    redis_client =  from_url("redis://localhost:6379/0")
+    redis_client.ping()
+@app.on_event("shutdown")
+async def shutdown():
+   
+    redis_client.close()
 # =========================
 #  CRUD ФУНКЦІЇ ДЛЯ АВТОРІВ
 # =========================
@@ -355,9 +367,18 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 @app.get("/uploads/{filename}")
 def get_uploaded_file(filename: str):
+
+    key = f"file://{filename}"
+    cached = redis_client.get(key)
+
+    if cached:
+        return {"filename": filename, "path": cached.decode("utf-8")}
+    
     path = f"uploads/{filename}"
     if not os.path.exists(path):
         raise HTTPException(404, "File not found")
+
+    redis_client.set(key, path)
     return {"filename": filename, "path": path}
 
 

@@ -1,7 +1,7 @@
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from security import CSRFProtectionMiddleware
+from security_token import CSRFProtectionMiddleware
 
 csrf_protection = CSRFProtectionMiddleware()
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
