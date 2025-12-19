@@ -62,7 +62,7 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 app.add_middleware(SecurityHeadersMiddleware)
-redis_client = Optional[Redis] = None
+redis_client : Optional[Redis] = None
 
 @app.on_event("startup")
 async def startup():
